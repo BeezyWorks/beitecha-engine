@@ -14,6 +14,9 @@ import { Calendar, computeRange, todayIn } from '@beitecha/engine'
 const days = computeRange(schedule, todayIn(schedule.settings.location.timeZone), 7)
 ```
 
+It also holds the wording every viewer surface shares (`makeT`: zman labels, weekdays, dates, "next up", in the
+shul's `language`, `timeFormat` and `names`), so a shul reads the same in the Siddur as on its display.
+
 Times are `Minutes` since local midnight in the shul's time zone (`settings.location.timeZone`), never the viewer's.
 
 ```sh
