@@ -1,5 +1,5 @@
 export * from './types'
-export { Calendar, computeDay, computeRange, noticeLastDay } from './schedule'
+export { Calendar, computeDay, computeRange, derivedRelative, noticeLastDay } from './schedule'
 export { guessAudience, guessCategory } from './categories'
 export { sampleSchedule } from './sample'
 export { starterSchedule, type StarterOptions } from './starter'

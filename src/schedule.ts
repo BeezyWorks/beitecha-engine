@@ -25,7 +25,7 @@ import type {
 class EvalError extends Error {}
 
 /** "15 minutes after Maariv" is "after Maariv", "30 before Mincha" is "before Mincha"; rounding doesn't change it. */
-function derivedRelative(expr: TimeExpr): RelativeTo | undefined {
+export function derivedRelative(expr: TimeExpr): RelativeTo | undefined {
   let e = expr
   if ('round' in e) e = e.round
   const offset = 'offset' in e ? e.offset : 0
