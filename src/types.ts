@@ -163,6 +163,16 @@ export interface NoticeCategory {
   id: string
   name: Localized
 }
+  /** The week's shiurim, with the announcements. Default true. */
+  shiurim?: boolean
+  /** Starred events coming up after this week. Default true. */
+  comingUp?: boolean
+  /** Sponsorships and announcements. Default true. */
+  notices?: boolean
+  /** The week's yahrzeits. Default true. */
+  yahrzeits?: boolean
+  /** The refuah shleimah list. Default true. */
+  cholim?: boolean
 
 // ---------------------------------------------------------------------------
 // Zmanim
