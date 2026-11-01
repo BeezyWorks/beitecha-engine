@@ -140,11 +140,46 @@ export interface ShulSettings {
   noticeCategories?: NoticeCategory[]
   /** How the printed week looks. */
   print?: PrintSettings
+  /** How the upcoming yahrzeits are titled and shown. */
+  yahrzeits?: YahrzeitSettings
+}
+
+/** Which of a yahrzeit's names are shown: the Hebrew name ("Menachem ben Maimon"), the display name ("Menachem Kohen"), or both. */
+export type YahrzeitNames = 'both' | 'hebrew' | 'display'
+/** Which date: the Hebrew one, the civil one, or both. */
+export type YahrzeitDates = 'both' | 'hebrew' | 'english'
+
+export interface YahrzeitSettings {
+  /** The heading over the list. Default "Upcoming yahrzeits". */
+  title?: Localized
+  /** Default `both`. */
+  names?: YahrzeitNames
+  /** Default `both`. */
+  dates?: YahrzeitDates
+  /** How many days ahead (counting today) a yahrzeit is listed on the display and the Siddur. Default 7; the printed week lists its own days. */
+  days?: number
 }
 
 export interface PrintSettings {
   /** The week's zmanim, day by day, on the front. Default true. */
   zmanimTable?: boolean
+  /** The week's shiurim, with the announcements. Default true. */
+  shiurim?: boolean
+  /** Starred events coming up after this week. Default true. */
+  comingUp?: boolean
+  /** Sponsorships and announcements. Default true. */
+  notices?: boolean
+  /** The week's yahrzeits. Default true. */
+  yahrzeits?: boolean
+  /** The refuah shleimah list. Default true. */
+  cholim?: boolean
+  /**
+   * How many pages the sheet may run to, or `'unlimited'`. The content is shrunk to fit; unlimited keeps it at
+   * full size and adds pages as needed. Default 2 (a second page only when there are announcements).
+   */
+  pages?: number | 'unlimited'
+  /** Text size on the sheet as a multiple of normal (1), shrunk anyway where it wouldn't fit the pages. Default 1. */
+  textSize?: number
   /**
    * Zmanim listed among Friday night's minyanim and Shabbos day's, each at its time (built-in or custom, shown even
    * when `zmanim.hidden`). Default candle lighting and havdalah.
@@ -163,16 +198,6 @@ export interface NoticeCategory {
   id: string
   name: Localized
 }
-  /** The week's shiurim, with the announcements. Default true. */
-  shiurim?: boolean
-  /** Starred events coming up after this week. Default true. */
-  comingUp?: boolean
-  /** Sponsorships and announcements. Default true. */
-  notices?: boolean
-  /** The week's yahrzeits. Default true. */
-  yahrzeits?: boolean
-  /** The refuah shleimah list. Default true. */
-  cholim?: boolean
 
 // ---------------------------------------------------------------------------
 // Zmanim
@@ -453,6 +478,26 @@ export interface Choleh {
   added: DateString
 }
 
+/** A Hebrew date. `month` is Hebcal's number: 1 Nisan … 6 Elul, 7 Tishrei … 11 Shevat, 12 Adar (Adar I in a leap year), 13 Adar II. */
+export interface HebrewDate {
+  day: number
+  month: number
+  year: number
+}
+
+/** Someone whose yahrzeit the shul keeps, listed in the days before it each year. */
+export interface Yahrzeit {
+  id: string
+  /** The Hebrew name, in Hebrew letters: "מנחם בן מימון". */
+  hebrewName?: string
+  /** The name people know them by, in `en` and/or `he`: "Menachem Kohen" / "מנחם כהן". */
+  displayName?: Localized
+  /** The Hebrew date of the passing; the one the yahrzeit is kept by. */
+  hebrew: HebrewDate
+  /** The civil date of the passing (derived from `hebrew`, or the one the gabbai entered). */
+  gregorian: DateString
+}
+
 export interface Schedule {
   settings: ShulSettings
   events: EventDef[]
@@ -460,6 +505,8 @@ export interface Schedule {
   notices: Notice[]
   /** The refuah shleimah list. Absent on schedules from before it. */
   cholim?: Choleh[]
+  /** The yahrzeits the shul keeps. Absent on schedules from before them. */
+  yahrzeits?: Yahrzeit[]
 }
 
 // ---------------------------------------------------------------------------
