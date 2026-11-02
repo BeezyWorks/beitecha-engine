@@ -46,12 +46,13 @@ const has = (evs: HolidayEvent[], mask: number) => evs.some((e) => (e.getFlags()
 
 /**
  * A fast day the shul davens differently on. Not Yom Kippur (it's Yom Tov), not Erev
- * Tish'a B'Av (Hebcal flags the fast's eve), not BeHaB or Bechoros (individuals' fasts).
+ * Tish'a B'Av (Hebcal flags the fast's eve), not BeHaB, Bechoros or Yom Kippur Katan (individuals' fasts).
  */
-const isPublicFast = (e: HolidayEvent) =>
+export const isPublicFast = (e: HolidayEvent) =>
   (e.getFlags() & (flags.MINOR_FAST | flags.MAJOR_FAST)) !== 0 &&
   (e.getFlags() & (flags.CHAG | flags.EREV | flags.BEHAB)) === 0 &&
-  e.getDesc() !== "Ta'anit Bechorot"
+  e.getDesc() !== "Ta'anit Bechorot" &&
+  !e.getDesc().startsWith('Yom Kippur Katan')
 
 function inChanukah(hd: HDate): boolean {
   // Kislev and Teves share a Hebrew year, so 25 Kislev of this year starts it.
@@ -177,6 +178,7 @@ const ROUND_UP: ReadonlySet<ZmanId> = new Set([
   'plag',
   'tzeis',
   'havdalah',
+  'fastEnds',
 ])
 
 export function zmanimFor(date: DateString, settings: ShulSettings): ZmanTimes {
@@ -188,6 +190,7 @@ export function zmanimFor(date: DateString, settings: ShulSettings): ZmanTimes {
   const z = new Zmanim(loc, hdate, useElevation)
   const tzeisAngle = opts.tzeisAngle ?? 8.5
   const havdalah = opts.havdalah ?? { angle: 8.5 }
+  const fastEnds = opts.fastEnds ?? { angle: 6.45 }
   const candleMinutes = opts.candleLightingMinutes ?? 18
 
   const raw: Record<ZmanId, () => Date> = {
@@ -209,6 +212,8 @@ export function zmanimFor(date: DateString, settings: ShulSettings): ZmanTimes {
       'minutes' in havdalah
         ? new Date(z.sunset().getTime() + havdalah.minutes * 60_000)
         : z.tzeit(havdalah.angle),
+    fastEnds: () =>
+      'minutes' in fastEnds ? new Date(z.sunset().getTime() + fastEnds.minutes * 60_000) : z.tzeit(fastEnds.angle),
   }
 
   const out: ZmanTimes = {}
@@ -225,4 +230,27 @@ export function zmanimFor(date: DateString, settings: ShulSettings): ZmanTimes {
   const instants = customInstants((elevation) => (elevation === useElevation ? z : other), custom, useElevation)
   for (const c of custom) put(c.id, instants.get(c.id)!, !c.deadline)
   return out
+}
+
+/**
+ * The last times to eat and to burn chametz on Erev Pesach, by the Magen Avraham (the day from alos to tzeis, 72
+ * minutes each) and the Gra (sunrise to sunset): four and five *shaos zmaniyos* into the day. Both round down.
+ */
+export function chametzZmanim(date: DateString, settings: ShulSettings) {
+  const { latitude, longitude, elevation, timeZone, israel } = settings.location
+  const loc = new Location(latitude, longitude, israel, timeZone, undefined, undefined, undefined, elevation ?? 0)
+  const z = new Zmanim(loc, new HDate(hostDate(date)), settings.zmanim?.useElevation ?? false)
+  const alos = z.alotHaShachar72().getTime()
+  const eatMga = z.sofZmanTfillaMGA().getTime()
+  const eatGra = z.sofZmanTfilla().getTime()
+  const sunrise = z.sunrise().getTime()
+  const down = (instant: number) =>
+    Number.isNaN(instant) ? undefined : Math.floor(minutesInZone(new Date(instant), date, timeZone))
+  return {
+    eatMga: down(eatMga),
+    eatGra: down(eatGra),
+    // A fifth hour is the fourth plus a quarter more of the day's first four.
+    burnMga: down(alos + ((eatMga - alos) * 5) / 4),
+    burnGra: down(sunrise + ((eatGra - sunrise) * 5) / 4),
+  }
 }
