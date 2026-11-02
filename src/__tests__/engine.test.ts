@@ -396,6 +396,43 @@ describe('tefila types', () => {
 
 describe('time zones', () => {
   const original = process.env.TZ
+describe('selichos minyanim', () => {
+  const selichos = (id: string, nusach?: 'ashkenaz' | 'sefard'): EventDef => ({
+    id,
+    name: { en: `Selichos ${id}` },
+    kind: 'tefila',
+    tefila: 'selichos',
+    nusach,
+    rules: [{ time: { clock: '06:00' } }],
+  })
+  const schedule: Schedule = {
+    ...sampleSchedule,
+    events: [selichos('ash', 'ashkenaz'), selichos('sef', 'sefard'), selichos('none')],
+    exceptions: [],
+  }
+  const on = (date: string) =>
+    computeDay(schedule, date).events.filter((e) => e.minutes !== null).map((e) => e.eventId)
+
+  it('happens only on its own nusach\'s selichos days', () => {
+    expect(on('2026-01-12')).toEqual([])
+    expect(on('2026-08-17')).toEqual(['sef']) // Elul, before Ashkenaz begins
+    expect(on('2026-09-07')).toEqual(['ash', 'sef'])
+    expect(on('2026-09-12')).toEqual([]) // Rosh Hashana
+    expect(on('2026-09-19')).toEqual([]) // Shabbos
+  })
+
+  it('carries its nusach, and is invalid without one', () => {
+    expect(computeDay(schedule, '2026-09-07').events[0].nusach).toBe('ashkenaz')
+    const bad = validate(schedule, '2026-09-07', 1).filter((i) => i.eventId === 'none')
+    expect(bad.map((i) => i.level)).toContain('error')
+  })
+
+  it('guesses the tefila from the name', () => {
+    expect(guessTefila({ id: 'x', name: { en: 'Selichos' } })).toBe('selichos')
+    expect(guessTefila({ id: 'x', name: { en: 'x', he: 'סליחות' } })).toBe('selichos')
+  })
+})
+
   afterEach(() => {
     process.env.TZ = original
   })

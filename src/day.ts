@@ -12,7 +12,19 @@ import {
 
 import { customInstants } from './custom'
 import { addDays, hostDate, isDst, minutesInZone, startOfWeek, weekdayOf } from './dates'
-import type { DateString, DayTag, LocalHoliday, Localized, ShulSettings, Weekday, ZmanId, ZmanTimes } from './types'
+import {
+  SELICHOS_NUSACHIM,
+  type DateString,
+  type DayTag,
+  type LocalHoliday,
+  type Localized,
+  type SelichosMinhag,
+  type SelichosNusach,
+  type ShulSettings,
+  type Weekday,
+  type ZmanId,
+  type ZmanTimes,
+} from './types'
 
 export interface DayInfo {
   date: DateString
@@ -22,6 +34,8 @@ export interface DayInfo {
   /** The shul's own civil holidays on this date. */
   localHolidays: LocalHoliday[]
   tags: Set<DayTag>
+  /** The nusachim whose selichos are said this morning (whatever the shul's own `selichos` setting is). */
+  selichos: SelichosNusach[]
 }
 
 function holidaysOn(hd: HDate, il: boolean): HolidayEvent[] {
@@ -54,8 +68,7 @@ function inOmer(hd: HDate): boolean {
 
 /** Selichos mornings: Ashkenaz from the Sunday at least four days before Rosh Hashana,
  * Sefard from 2 Elul; both through Erev Yom Kippur, skipping Shabbos and Yom Tov. */
-function isSelichos(date: DateString, hd: HDate, settings: ShulSettings, yomTov: boolean): boolean {
-  const minhag = settings.selichos ?? 'ashkenaz'
+export function isSelichosDay(date: DateString, hd: HDate, minhag: SelichosMinhag, yomTov: boolean): boolean {
   if (minhag === 'none' || yomTov || weekdayOf(date) === 6) return false
   const m = hd.getMonth()
   const d = hd.getDate()
@@ -97,13 +110,14 @@ export function dayInfo(date: DateString, settings: ShulSettings, localHolidays:
   if (inChanukah(hdate)) tags.add('chanukah')
   if (holidays.some((e) => e.getDesc() === 'Purim')) tags.add('purim')
   if (!HebrewCalendar.tachanun(hdate, israel).shacharit) tags.add('noTachanun')
-  if (isSelichos(date, hdate, settings, yomTov)) tags.add('selichos')
+  if (isSelichosDay(date, hdate, settings.selichos ?? 'ashkenaz', yomTov)) tags.add('selichos')
+  const selichos = SELICHOS_NUSACHIM.filter((n) => isSelichosDay(date, hdate, n, yomTov))
   if (hdate.getMonth() === months.TISHREI && hdate.getDate() <= 10) tags.add('aseresYemeiTeshuva')
   if (inOmer(hdate)) tags.add('omer')
   if (isDst(date, timeZone)) tags.add('dst')
   if (localHolidays.length) tags.add('legalHoliday')
 
-  return { date, weekday, hdate, holidays, localHolidays, tags }
+  return { date, weekday, hdate, holidays, localHolidays, tags, selichos }
 }
 
 export function holidayMatches(info: DayInfo, name: string): boolean {
